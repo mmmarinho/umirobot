@@ -1,0 +1,6 @@
+[submodule "umirobot-py"]
+	path = umirobot-py
+	url = https://github.com/mmmarinho/umirobot-py.git
+[submodule "umirobot-arduino"]
+	path = umirobot-arduino
+	url = https://github.com/mmmarinho/umirobot-arduino.git
