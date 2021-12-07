@@ -1,5 +1,5 @@
 """
-Copyright (C) 2020 Murilo Marques Marinho (www.murilomarinho.info)
+Copyright (C) 2020-2021 Murilo Marques Marinho (www.murilomarinho.info)
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
 version.
@@ -49,7 +49,7 @@ class UMIRobotVrepRobot:
               deg2rad([-90,   180,         90, -90,             0]),
                       [0,     0,           0,   0,              0]
         ])
-        robot = DQ_SerialManipulatorDH(dh_matrix, 'standard')
+        robot = DQ_SerialManipulatorDH(dh_matrix)
         robot.set_reference_frame(self._get_reference_frame_from_vrep())
         return robot
 
