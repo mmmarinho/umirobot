@@ -65,7 +65,7 @@ def control_loop(umirobot_smr, cfg):
         # Control loop (We're going to control it open loop, because that is how we operate the real robot)
         # Initialize q with its initial value
         q = q_init
-        while True:
+        while not umirobot_smr.get_shutdown_flag():
             # Change how you calculate xd
             xd = umirobot_vrep.get_xd_from_vrep()
 

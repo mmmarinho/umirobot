@@ -59,4 +59,5 @@ if __name__ == '__main__':
             print('main::__main__::Error::' + str(e))
         except KeyboardInterrupt:
             print('main::__main__::Info::Shutdown by CTRL+C.')
+            shared_memory_provider.send_shutdown_flag(True)
         shared_memory_receiver_process.join()
