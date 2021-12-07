@@ -92,9 +92,9 @@ def control_loop(umirobot_smr, cfg):
                     raise Exception("UMIRobot port not opened at {}.".format(cfg["umirobot_port"]))
 
     except Exception as e:
-        print("Exception caught: ", e)
+        print("umirobot_task_space_control::control_loop::KeyboardInterrupt::Exception caught: ", e)
     except KeyboardInterrupt:
-        print("KeyboardInterrupt")
+        print("umirobot_task_space_control::control_loop::KeyboardInterrupt")
 
     # Disconnect from VREP
     vrep_interface.disconnect()

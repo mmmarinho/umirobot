@@ -60,4 +60,8 @@ if __name__ == '__main__':
         except KeyboardInterrupt:
             print('main::__main__::Info::Shutdown by CTRL+C.')
             shared_memory_provider.send_shutdown_flag(True)
-        shared_memory_receiver_process.join()
+
+        # The child process can die before the main process calls join,
+        # in which case the main process gets stuck waiting forever.
+        if shared_memory_receiver_process.is_alive():
+            shared_memory_receiver_process.join()
