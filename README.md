@@ -66,3 +66,42 @@ remote, remote_port = client.query()
 
 print("Connection is opened at:", remote, remote_port)
 ```
+or 
+```python
+from TeleopProxy import query_server_location
+
+server_key_path = "./client_secrete/server_key.key"  # location of the server key
+team_name = "TEAM1111"                               # pre-negotiated unique Team Name
+
+#quary for remote address and port in single function
+remote, remote_port = query_server_location(server_key_path, team_name)
+
+print("Connection is opened at:", remote, remote_port)
+```
+## Combining with *umirobot-task-space-control*
+
+For Server side (Side with physical robot)
+- Add to the `import` section in `main.py` file
+
+```python
+from TeleopProxy import Server as TeleopProxyServer
+server_key_path = "./client_secrete/server_key.key"  # location of the server key
+ssh_key_path = "./client_secrete/id_rsa"             # location of the ssh private key
+team_name = "TEAMxxxx"                               # pre-negotiated unique Team Name
+vrep_port = 20000     
+```
+
+- Add to just after `with UMIRobot() as umirobot...` in `main.py` file
+
+```python
+server = TeleopProxyServer(server_key_path, ssh_key_path, team_name)
+# open tunnel
+connect_info = server.open(vrep_port)
+print("connection will be open at:", connect_info)
+```
+- Add to just after `shared_memory_receiver_process.join()` in `main.py` file
+  
+  Same indent level with `if shared_memory_receiver_process.is_alive():`
+```python
+server.close()
+```

@@ -5,10 +5,6 @@ import random
 from .teleop_configurator import *
 
 
-def get_remote():
-    return SERVER_LOCATION
-
-
 class Client:
     def __init__(self, server_key_path, team_name):
         """
@@ -57,3 +53,18 @@ class Client:
     def get_port(self):
         return self.opened_port
 
+    def get_remote(self):
+        return SERVER_LOCATION
+
+
+def query_server_location(server_key_path, team_name):
+    """
+    Get proxy server location
+    :param server_key_path: server password key file
+    :param team_name: Unique team and forwarding instance identifier
+    :return: remote, remote_port
+        remote address, forwarded port
+        remote_port==None if team_name is not found on server
+    """
+    client = Client(server_key_path, team_name)
+    return client.query()
