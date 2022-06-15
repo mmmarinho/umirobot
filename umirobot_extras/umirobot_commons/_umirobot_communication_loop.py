@@ -14,9 +14,9 @@ import multiprocessing.managers as mm
 
 from umirobot import UMIRobot
 from umirobot.shared_memory import UMIRobotSharedMemoryProvider
-from umirobot_task_space_control import run
 
-if __name__ == '__main__':
+
+def umirobot_communication_loop(run):
     with UMIRobot() as umirobot, mm.SharedMemoryManager() as smm:
         # Lock
         lock = mp.Lock()
@@ -25,7 +25,7 @@ if __name__ == '__main__':
         # Receiver
         shared_memory_receiver_process = mp.Process(
             target=run,
-            args=[shared_memory_provider.get_shared_memory_receiver_initializer_args(), lock]
+            args=(shared_memory_provider.get_shared_memory_receiver_initializer_args(), lock)
         )
         shared_memory_receiver_process.start()
 
