@@ -10,6 +10,8 @@ see <https://www.gnu.org/licenses/>.
 """
 import numpy as np
 
+from math import sin, cos
+from dqrobotics import *
 from umirobot.shared_memory import UMIRobotSharedMemoryReceiver
 from umirobot_task_space_controller import UMIRobotTaskSpaceController
 from dqrobotics.interfaces.vrep import DQ_VrepInterface
