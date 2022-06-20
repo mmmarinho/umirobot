@@ -13,10 +13,10 @@ import numpy as np
 from dqrobotics import *
 from math import sin, cos
 from umirobot.shared_memory import UMIRobotSharedMemoryReceiver
-from umirobot_extras.umirobot_task_space_control._umirobot_task_space_controller import UMIRobotTaskSpaceController
+from umirobot_control.task_space_control._umirobot_task_space_controller import UMIRobotTaskSpaceController
 from dqrobotics.interfaces.vrep import DQ_VrepInterface as DQ_CoppeliaSimInterface
 from dqrobotics.utils.DQ_Math import rad2deg, deg2rad
-from umirobot_extras.umirobot_commons import UMIRobotCSimRobot
+from umirobot_control.commons import UMIRobotCSimRobot
 
 configuration = {
     "controller_gain": 4.0,
@@ -102,8 +102,8 @@ def control_loop(umirobot_smr, cfg):
         sampling_time = 0.008
 
         # Some info for the user
-        print("umirobot_task_space_control::Ready to start. Move the `xd` on the CoppeliaSim scene.")
-        print("umirobot_task_space_control::Use CTRL+C to finish cleanly.")
+        print("task_space_control::Ready to start. Move the `xd` on the CoppeliaSim scene.")
+        print("task_space_control::Use CTRL+C to finish cleanly.")
 
         # Control loop (We're going to control it open loop, because that is how we operate the real robot)
         # Initialize q with its initial value
@@ -139,11 +139,11 @@ def control_loop(umirobot_smr, cfg):
                     raise Exception("UMIRobot port not opened at {}.".format(cfg["umirobot_port"]))
 
     except Exception as e:
-        print("umirobot_task_space_control::control_loop::Exception caught: ", e)
-        print("umirobot_task_space_control::Be sure that your CoppeliaSim scene is correctly loaded and "
+        print("task_space_control::control_loop::Exception caught: ", e)
+        print("task_space_control::Be sure that your CoppeliaSim scene is correctly loaded and "
               "that the simulation has been started.")
     except KeyboardInterrupt:
-        print("umirobot_task_space_control::control_loop::KeyboardInterrupt")
+        print("task_space_control::control_loop::KeyboardInterrupt")
         umirobot_smr.lock.acquire(False)
         umirobot_smr.lock.release()
 
@@ -156,10 +156,10 @@ def run(shared_memory_info, lock):
 
     try:
         control_loop(umirobot_smr, cfg=configuration)
-        print("umirobot_task_space_control::run::Control loop ended.")
+        print("task_space_control::run::Control loop ended.")
     except Exception as e:
-        print("umirobot_task_space_control::run::Error::" + str(e))
+        print("task_space_control::run::Error::" + str(e))
     except KeyboardInterrupt:
-        print("umirobot_task_space_control::run::Info::Interrupted by user.")
+        print("task_space_control::run::Info::Interrupted by user.")
 
     umirobot_smr.send_shutdown_flag(True)

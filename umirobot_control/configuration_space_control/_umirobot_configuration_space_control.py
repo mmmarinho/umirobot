@@ -14,7 +14,7 @@ import numpy as np
 
 from umirobot.shared_memory import UMIRobotSharedMemoryReceiver
 from dqrobotics.interfaces.vrep import DQ_VrepInterface as DQ_CoppeliaSimInterface
-from umirobot_extras.umirobot_commons import UMIRobotCSimRobot
+from umirobot_control.commons import UMIRobotCSimRobot
 
 configuration = {
     "use_real_umirobot": False,
@@ -37,12 +37,12 @@ def control_loop(umirobot_smr, cfg):
 
     try:
         # Some info for the user
-        print("umirobot_configuration_space_control::This example only works if your master is correctly connected.")
+        print("configuration_space_control::This example only works if your master is correctly connected.")
 
         # Try to connect to robot
         if cfg["use_real_umirobot"]:
             umirobot_smr.send_port(cfg["umirobot_port"])
-            print("umirobot_configuration_space_control::Trying to connect to umirobot at port={}.".format(cfg["umirobot_port"]))
+            print("configuration_space_control::Trying to connect to umirobot at port={}.".format(cfg["umirobot_port"]))
 
         # Try to connect to CoppeliaSim
         if not csim_interface.connect(20000, 100, 10):
@@ -57,8 +57,8 @@ def control_loop(umirobot_smr, cfg):
         q_init = umirobot_csim.get_q_from_csim()
 
         # Some info for the user
-        print("umirobot_configuration_space_control::Ready to start. ")
-        print("umirobot_configuration_space_control::Use CTRL+C to finish cleanly.")
+        print("configuration_space_control::Ready to start. ")
+        print("configuration_space_control::Use CTRL+C to finish cleanly.")
 
         # Control loop (We're going to control it open loop, because that is how we operate the real robot)
         # Initialize q with its initial value
@@ -70,7 +70,7 @@ def control_loop(umirobot_smr, cfg):
 
             # Check potentiometer_values
             if potentiometer_values[0] is None:
-                print("umirobot_configuration_space_control::Potentiometer values invalid. Is your master connected?"
+                print("configuration_space_control::Potentiometer values invalid. Is your master connected?"
                       " Retrying...")
                 time.sleep(1)
                 continue
@@ -89,11 +89,11 @@ def control_loop(umirobot_smr, cfg):
             time.sleep(0.008)
 
     except Exception as e:
-        print("umirobot_configuration_space_control::control_loop::Exception caught: ", e)
-        print("umirobot_task_space_control::Be sure that your CoppeliaSim scene is correctly loaded and "
+        print("configuration_space_control::control_loop::Exception caught: ", e)
+        print("task_space_control::Be sure that your CoppeliaSim scene is correctly loaded and "
               "that the simulation has been started.")
     except KeyboardInterrupt:
-        print("umirobot_configuration_space_control::control_loop::KeyboardInterrupt")
+        print("configuration_space_control::control_loop::KeyboardInterrupt")
         umirobot_smr.lock.acquire(False)
         umirobot_smr.lock.release()
 
@@ -107,8 +107,8 @@ def run(shared_memory_info, lock):
     try:
         control_loop(umirobot_smr, cfg=configuration)
     except Exception as e:
-        print("umirobot_configuration_space_control::run::Error::" + str(e))
+        print("configuration_space_control::run::Error::" + str(e))
     except KeyboardInterrupt:
-        print("umirobot_configuration_space_control::run::Info::Interrupted by user.")
+        print("configuration_space_control::run::Info::Interrupted by user.")
 
     umirobot_smr.send_shutdown_flag(True)

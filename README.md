@@ -1,10 +1,10 @@
-# Extra Content for the UMIRobot
+# `umirobot-extras` Extra Content for the UMIRobot
 
-| Module                               | Description                                                                   | Author            | 
-|--------------------------------------|-------------------------------------------------------------------------------|-------------------|
-| umirobot-commons                     | Module with shared content                                                    | Murilo M. Marinho |
-| umirobot-configuration-space-control | Moving your UMIRobot in configuration space using a Python script             | Murilo M. Marinho |
-| umirobot-task-space-control          | Moving your UMIRobot in task space using an constrained kinematic controller. | Murilo M. Marinho |
+| Module                                       | Description                                                                   | Author            | 
+|----------------------------------------------|-------------------------------------------------------------------------------|-------------------|
+| umirobot_control.commons                     | Module with shared content                                                    | Murilo M. Marinho |
+| umirobot_control.configuration-space-control | Moving your UMIRobot in configuration space using a Python script             | Murilo M. Marinho |
+| umirobot_control.task-space-control          | Moving your UMIRobot in task space using an constrained kinematic controller. | Murilo M. Marinho |
 
 
 # Setup
@@ -25,10 +25,10 @@ Each module has a `__main__.py` script. Run it in your favorite IDE (e.g. PyChar
 
 ### Configuration-space control
 ```commandline
-python -m umirobot_extras.umirobot_configuration_space_control
+python -m umirobot_control.configuration_space_control
 ```
 
 ### Task-space control
 ```commandline
-python -m umirobot_extras.umirobot_task_space_control
+python -m umirobot_control.task_space_control
 ```
