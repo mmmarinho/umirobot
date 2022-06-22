@@ -25,8 +25,6 @@ python -m pip install -r requirements.txt
 
 Each module has a `__main__.py` script. Run it in your favorite IDE (e.g. PyCharm) or through the commandline.
 
-## Examples:
-
 ### Configuration-space control
 ```bash
 python -m umirobot_control.configuration_space_control
