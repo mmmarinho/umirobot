@@ -75,7 +75,7 @@ def control_loop(umirobot_smr, cfg):
                 time.sleep(1)
                 continue
 
-            # Your strategy to calculate the current q, for example
+            # Your strategy to calculate the current q. Modify this function to your purposes.
             qd = get_qd(potentiometer_values=potentiometer_values,
                         digital_in_values=digital_in_values)
 
