@@ -8,7 +8,7 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Gen
 You should have received a copy of the GNU General Public License along with this program. If not,
 see <https://www.gnu.org/licenses/>.
 """
-from umirobot_control.commons import umirobot_communication_loop
+from umirobot import umirobot_communication_loop
 from umirobot_control.task_space_control._umirobot_task_space_control import run
 
 if __name__ == "__main__":

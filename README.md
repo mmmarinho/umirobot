@@ -9,7 +9,7 @@
 
 # Setup
 
-```commandline
+```bash
 git clone https://github.com/mmmarinho/umirobot
 cd umirobot
 python3 -m venv venv
@@ -24,11 +24,11 @@ Each module has a `__main__.py` script. Run it in your favorite IDE (e.g. PyChar
 ## Examples:
 
 ### Configuration-space control
-```commandline
+```bash
 python -m umirobot_control.configuration_space_control
 ```
 
 ### Task-space control
-```commandline
+```bash
 python -m umirobot_control.task_space_control
 ```

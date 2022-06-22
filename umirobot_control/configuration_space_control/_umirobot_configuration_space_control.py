@@ -10,25 +10,24 @@ see <https://www.gnu.org/licenses/>.
 """
 import time
 
-import numpy as np
-
 from umirobot.shared_memory import UMIRobotSharedMemoryReceiver
 from dqrobotics.interfaces.vrep import DQ_VrepInterface as DQ_CoppeliaSimInterface
-from umirobot_control.commons import UMIRobotCSimRobot
+from umirobot_control.commons import UMIRobotCSimRobot, normalize_potentiometer_values
 
 configuration = {
     "use_real_umirobot": False,
     "umirobot_port": "COM3"
 }
 
-
-def normalize_potentiometer_values(potentiometer_values):
+def get_qd(potentiometer_values,
+           digital_in_values):
     """
-    Transforms all the potentiometer values (usually numbers between 0 and 5) into a numbers between -1 and 1.
-    :param potentiometer_values: a list of potentiometer values obtained from the UMIRobot
-    :return: a list of the normalized potentiometer values
+    Modify this function to calculate the desired joint values.
+    :param potentiometer_values: the potentiometer values obtained from the Arduino (a list of floats between 0.~5.)
+    :param digital_in_values: the digital input values obtained from the Arduino (a list of 1s and 0s)
+    :return: a list contaning the desired joint values
     """
-    return [(potentiometer_value - 2.5) / 5.0 for potentiometer_value in potentiometer_values]
+    return normalize_potentiometer_values(potentiometer_values)
 
 
 def control_loop(umirobot_smr, cfg):
@@ -40,9 +39,8 @@ def control_loop(umirobot_smr, cfg):
         print("configuration_space_control::This example only works if your master is correctly connected.")
 
         # Try to connect to robot
-        if cfg["use_real_umirobot"]:
-            umirobot_smr.send_port(cfg["umirobot_port"])
-            print("configuration_space_control::Trying to connect to umirobot at port={}.".format(cfg["umirobot_port"]))
+        umirobot_smr.send_port(cfg["umirobot_port"])
+        print("configuration_space_control::Trying to connect to umirobot at port={}.".format(cfg["umirobot_port"]))
 
         # Try to connect to CoppeliaSim
         if not csim_interface.connect(20000, 100, 10):
@@ -67,6 +65,8 @@ def control_loop(umirobot_smr, cfg):
 
             # Obtain potentiometer values
             potentiometer_values = umirobot_smr.get_potentiometer_values()
+            # Obtain digital input values
+            digital_in_values = umirobot_smr.get_digital_in_values()
 
             # Check potentiometer_values
             if potentiometer_values[0] is None:
@@ -76,7 +76,8 @@ def control_loop(umirobot_smr, cfg):
                 continue
 
             # Your strategy to calculate the current q, for example
-            qd = [90.0*x for x in normalize_potentiometer_values(potentiometer_values)]
+            qd = get_qd(potentiometer_values=potentiometer_values,
+                        digital_in_values=digital_in_values)
 
             # Update real robot if needed
             if cfg["use_real_umirobot"]:
