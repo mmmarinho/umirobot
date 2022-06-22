@@ -1,4 +1,8 @@
-# `umirobot-extras` Extra Content for the UMIRobot
+# `umirobot-extras` 
+
+Extra Content for the UMIRobot.
+
+# Contents
 
 | Module                                       | Description                                                                   | Author            | 
 |----------------------------------------------|-------------------------------------------------------------------------------|-------------------|
