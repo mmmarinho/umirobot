@@ -19,13 +19,14 @@ configuration = {
     "umirobot_port": "COM3"
 }
 
+
 def get_qd(potentiometer_values,
            digital_in_values):
     """
     Modify this function to calculate the desired joint values.
     :param potentiometer_values: the potentiometer values obtained from the Arduino (a list of floats between 0.~5.)
     :param digital_in_values: the digital input values obtained from the Arduino (a list of 1s and 0s)
-    :return: a list contaning the desired joint values
+    :return: a list containing the desired joint values
     """
     return normalize_potentiometer_values(potentiometer_values)
 

@@ -20,7 +20,7 @@ class UMIRobotCSimRobot:
                             'UMIRobot_joint_3',
                             'UMIRobot_joint_4',
                             'UMIRobot_joint_5']
-        self.gripper_name = 'UMIRobot_gripper_joint'
+        self.gripper_name = 'UMIRobot_joint_6'
         self.reference_frame_name = 'UMIRobot_reference_frame'
         self.pose_frame_name = 'x'
         self.desired_pose_frame_name = 'xd'

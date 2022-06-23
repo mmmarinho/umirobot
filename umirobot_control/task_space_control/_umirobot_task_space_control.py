@@ -16,7 +16,7 @@ from umirobot.shared_memory import UMIRobotSharedMemoryReceiver
 from umirobot_control.task_space_control._umirobot_task_space_controller import UMIRobotTaskSpaceController
 from dqrobotics.interfaces.vrep import DQ_VrepInterface as DQ_CoppeliaSimInterface
 from dqrobotics.utils.DQ_Math import rad2deg, deg2rad
-from umirobot_control.commons import UMIRobotCSimRobot
+from umirobot_control.commons import UMIRobotCSimRobot, normalize_potentiometer_values
 
 configuration = {
     "controller_gain": 4.0,
@@ -28,13 +28,15 @@ configuration = {
 }
 
 
-def normalize_potentiometer_value(potentiometer_value):
+def get_gripper_value_from_real_master(potentiometer_values):
     """
-    Transforms the potentiometer value (usually a number between 0 and 5) into a number between -1 and 1.
-    :param potentiometer_value: a potentiomenter value obtained from the UMIRobot
-    :return: the normalized potentiometer value
+    Template for the students to implement their own gripper control logic using thei masters.
+    :param potentiometer_values: the list of potentiometer values
+    :return: A value between -90 and 90 indicating the servo rotation.
     """
-    return (potentiometer_value - 2.5) / 5.0
+    # One example:
+    normalized_potentiometer_values = normalize_potentiometer_values(potentiometer_values)
+    return normalized_potentiometer_values[5] * deg2rad(90)
 
 
 def get_xd_from_real_master(potentiometer_values, x_init):
@@ -47,21 +49,22 @@ def get_xd_from_real_master(potentiometer_values, x_init):
     :return: the xd representing the desired position that will be sent to the robot controller
     """
     # One way of doing it
-    tx = normalize_potentiometer_value(potentiometer_values[0]) * 0.02 * i_  # +- 2 cm motion about x
-    ty = normalize_potentiometer_value(potentiometer_values[1]) * 0.02 * j_  # +- 2 cm motion about y
-    tz = normalize_potentiometer_value(potentiometer_values[2]) * 0.02 * k_  # +- 2 cm motion about z
-    phix = normalize_potentiometer_value(potentiometer_values[3]) * deg2rad(90)  # +- 90 deg about x
+    normalized_potentiometer_values = normalize_potentiometer_values(potentiometer_values)
+    tx = normalized_potentiometer_values[0] * 0.02 * i_  # +- 2 cm motion about x
+    ty = normalized_potentiometer_values[1] * 0.02 * j_  # +- 2 cm motion about y
+    tz = normalized_potentiometer_values[2] * 0.02 * k_  # +- 2 cm motion about z
+    phix = normalized_potentiometer_values[3] * deg2rad(90)  # +- 90 deg about x
     rx = cos(phix / 2.0) + i_ * sin(phix / 2.0)
-    phiy = normalize_potentiometer_value(potentiometer_values[4]) * deg2rad(90)  # +- 90 deg about x
+    phiy = normalized_potentiometer_values[4] * deg2rad(90)  # +- 90 deg about x
     ry = cos(phiy / 2.0) + j_ * sin(phiy / 2.0)
-    phiz = normalize_potentiometer_value(potentiometer_values[5]) * deg2rad(90)  # +- 90 deg about x
+    phiz = normalized_potentiometer_values[5] * deg2rad(90)  # +- 90 deg about x
     rz = cos(phiz / 2.0) + k_ * sin(phiz / 2.0)
     # Relative pose
-    t = tx+ty+tz
-    r = rx*ry*rz
-    xd_relative = r + 0.5*E_*t*r
+    t = tx + ty + tz
+    r = rx * ry * rz
+    xd_relative = r + 0.5 * E_ * t * r
     # Absolute pose
-    return x_init*xd_relative
+    return x_init * xd_relative
 
 
 def control_loop(umirobot_smr, cfg):
@@ -109,12 +112,15 @@ def control_loop(umirobot_smr, cfg):
         # Initialize q with its initial value
         q = q_init
         while not umirobot_smr.get_shutdown_flag():
-            # Change how you calculate xd
+            # Get xd from CoppeliaSim
             xd = umirobot_csim.get_xd_from_csim()
+            # Get the desired gripper value from CoppeliaSim
+            gripper_value_d = umirobot_csim.get_gripper_value_from_csim()
 
             # Alternatively, you can do it like so:
             # potentiometer_values = umirobot_smr.get_potentiometer_values()
-            # xd = get_xd_from_real_master(potentiometer_value,x_init)
+            # xd = get_xd_from_real_master(potentiometer_values,x_init)
+            # gripper_value_d = get_gripper_value_from_real_master(potentiometer_values)
 
             # Solve the quadratic program
             u = umirobot_controller.compute_setpoint_control_signal(q, xd)
@@ -129,8 +135,6 @@ def control_loop(umirobot_smr, cfg):
             # Update real robot if needed
             if cfg["use_real_umirobot"]:
                 if umirobot_smr.is_open():
-                    # Get the desired gripper value from VREP
-                    gripper_value_d = umirobot_csim.get_gripper_value_from_csim()
                     # Control the gripper somehow
                     q_temp = np.hstack((q, gripper_value_d))
                     # The joint information has to be sent to the robot as a list of integers
