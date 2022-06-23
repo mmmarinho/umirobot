@@ -25,12 +25,19 @@ python -m pip install -r requirements.txt
 
 Each module has a `__main__.py` script. Run it in your favorite IDE (e.g. PyCharm) or through the commandline.
 
-### Configuration-space control
+### Configuration-space contro
+1. Open the `scenes/umirobot.ttt` on CoppeliaSim
+2. Press the :arrow_forward: to start the simulation.
+3. Make sure your Arduino is corrected to the correct port specified in `umirobot_control/configuration_space_control/__main__.py`. You can check it using the Arduino IDE or UMIRobotGUI.
+4. Run the following script:
 ```bash
 python -m umirobot_control.configuration_space_control
 ```
 
 ### Task-space control
+1. Open the `scenes/umirobot.ttt` on CoppeliaSim
+2. Press the :arrow_forward: to start the simulation.
+3. Run the following script:
 ```bash
 python -m umirobot_control.task_space_control
 ```
