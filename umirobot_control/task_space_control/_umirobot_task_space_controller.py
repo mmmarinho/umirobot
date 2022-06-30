@@ -87,30 +87,34 @@ class UMIRobotTaskSpaceController:
         # Get the Translation Jacobian and Rotation Jacobian
         Jx = self.kinematics.pose_jacobian(q)
         rd = rotation(xd)
-        Jr = haminus4(rd) @ C4() @ DQ_Kinematics.rotation_jacobian(Jx)
+        Jr = DQ_Kinematics.rotation_jacobian(Jx)
+        Nr = haminus4(rd) @ C4() @ Jr
 
         Jt = DQ_Kinematics.translation_jacobian(Jx, x)
 
         # Translation term
-        Ht = Jt.transpose() @ Jt + np.eye(DOF, DOF) * self.damping
+        Ht = Jt.transpose() @ Jt
         ft = self.gain * Jt.transpose() @ et
 
         # Rotation term
-        Hr = Jr.transpose() @ Jr + np.eye(DOF, DOF) * self.damping
-        fr = self.gain * Jr.transpose() @ er
+        Hr = Nr.transpose() @ Nr
+        fr = self.gain * Nr.transpose() @ er
+
+        # Damping term
+        Hd = np.eye(DOF, DOF) * self.damping * self.damping
 
         # Combine terms using the soft priority
-        H = self.alpha * Ht + (1.0 - self.alpha) * Hr
+        H = self.alpha * Ht + (1.0 - self.alpha) * Hr + Hd
         f = self.alpha * ft + (1.0 - self.alpha) * fr
 
-        # Joint (position) limit constraints
+        # Joint (position) limit constraints +- 90 degrees
         lower_joint_limits = -np.pi / 2.0 * (np.ones((DOF,)))
         upper_joint_limits = np.pi / 2.0 * (np.ones((DOF,)))
         W_jl = np.vstack((-1.0 * np.eye(DOF, DOF), np.eye(DOF, DOF)))
         w_jl = np.hstack((-1.0 * (lower_joint_limits - q), 1.0 * (upper_joint_limits - q)))
 
         # Solve the quadratic program
-        u = self.qp_solver.solve_quadratic_program(H, f, W_jl, w_jl, np.zeros((1, DOF)), np.zeros(1))
+        u = self.qp_solver.solve_quadratic_program(H, f, W_jl, w_jl, None, None)
 
         return u
 
