@@ -32,8 +32,6 @@ class IMUGloveComm:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-        # 22.06.24 --> Printing log files on Windows are causing access errors.
-        # self.print_log_to_file()
 
     def close(self):
         self.log("Info::Closing connection at {}.".format(str(self.port)))
