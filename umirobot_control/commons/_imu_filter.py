@@ -47,9 +47,9 @@ class IMUFilter:
                  adaptive_gain_bounds: (float, float) = (0.1, 0.2),
                  accelerometer_weight: float = 0.01,
                  calibration_required_samples: int = 20,
-                 accelerometer_bias=DQ([+138.90388548, -424.77709611, +17.11349693]),  # Obtained from
+                 accelerometer_bias=-DQ([-5, 15, 2]),  # Obtained from
                  # _imu_glove_comm main script
-                 gyrometer_bias=-DQ([-3.00190114, -50.99873257, 317.42015209])):
+                 gyrometer_bias=-DQ([162, 127, -147])):
         self.calibrated_: bool = False
         self.calibration_required_samples_: int = calibration_required_samples
         self.calibration_valid_sample_count_: int = 0
@@ -82,7 +82,8 @@ class IMUFilter:
             self.calibrated_ = True
 
     def set_absolute_acceleration(self, raw_acceleration: DQ):
-        self.absolute_acceleration_ = (raw_acceleration + self.accelerometer_bias_) * 0.01
+        # The acceleration is the opposite of what we're expecting
+        self.absolute_acceleration_ = - (raw_acceleration + self.accelerometer_bias_) * 0.01
 
     def get_absolute_acceleration(self):
         return self.absolute_acceleration_
@@ -203,7 +204,7 @@ if __name__ == "__main__":
     # Test IMUGloveComm
     vi = None
     with IMUGloveComm() as imu_glove_comm:
-        imu_glove_comm.set_port('COM3')
+        imu_glove_comm.set_port('COM5')
         imu_filter = IMUFilter()
         print("Press CTRL+C to end.")
         past_frame = 0
