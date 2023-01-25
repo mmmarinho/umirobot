@@ -140,6 +140,7 @@ class IMUFilter:
         # The adaptive gain is the complementary of the one used on the rotation. Alas,
         # we trust on it using the inverse relationship that we used for the rotation
         estimated_acceleration: DQ = adaptive_gain_for_linear * (self.get_absolute_acceleration() - g_now)
+        print("Estimated acceleration {}.".format(estimated_acceleration))
         self.set_current_linear_velocity(self.get_current_linear_velocity() + estimated_acceleration * T)
         self.set_current_position(self.get_current_position() + self.get_current_linear_velocity() * T)
 
@@ -220,7 +221,7 @@ if __name__ == "__main__":
                 w = imu_glove_comm.get_raw_gyrometer_values()
                 b = imu_glove_comm.get_button()
                 frame = imu_glove_comm.get_frame_number()
-                if not None in a and not None in w and frame > past_frame:
+                if b and None not in a and None not in w and frame > past_frame:
                     print("Frame {}.".format(frame))
                     imu_filter.set_absolute_acceleration(DQ(a))
                     imu_filter.set_absolute_angular_velocity(DQ(w))
@@ -230,7 +231,7 @@ if __name__ == "__main__":
                     t = imu_filter.get_current_position()
                     past_frame = frame
                     vi.set_object_rotation("Cuboid", r)
-                    #vi.set_object_translation("Cuboid", t)
+                    vi.set_object_translation("Cuboid", t)
             except KeyboardInterrupt:
                 print("imu_glove_comm::Info::Execution ended by user.")
                 break
