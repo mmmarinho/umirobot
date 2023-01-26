@@ -102,11 +102,11 @@ class IMUGloveComm:
                         i = 0
                         # Accelerometer
                         for j in range(0, 3):
-                            self.raw_accelerometer_values[j] = int(splitted_string[i + j])
+                            self.raw_accelerometer_values[j] = float(splitted_string[i + j])
                         i = i + 3
                         # Gyrometer
                         for j in range(0, 3):
-                            self.raw_gyrometer_values[j] = int(splitted_string[i + j])
+                            self.raw_gyrometer_values[j] = float(splitted_string[i + j])
                         i = i + 3
                         self.button = True if int(splitted_string[i]) == 1 else False
 

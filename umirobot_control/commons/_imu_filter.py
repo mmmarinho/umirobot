@@ -16,6 +16,7 @@ Reference:
 [1] Keeping a Good Attitude: A Quaternion-Based Oritantion Filter for IMUs and MARGs.
 Valenti, R.G.; Dryanovski, I.; Xiao, J., Sensors 2015, 15, 19302-19330
 """
+import time
 
 from dqrobotics import *
 import numpy as np
@@ -47,9 +48,9 @@ class IMUFilter:
                  adaptive_gain_bounds: (float, float) = (0.1, 0.2),
                  accelerometer_weight: float = 0.01,
                  calibration_required_samples: int = 20,
-                 accelerometer_bias=-DQ([-5, 15, 2]),  # Obtained from
+                 accelerometer_bias=-DQ([9, 16.0, 2]) * 9.81,  # Obtained from
                  # _imu_glove_comm main script
-                 gyrometer_bias=-DQ([162, 127, -147])):
+                 gyrometer_bias=-DQ([162.0, 127.0, -147.0])):
         self.calibrated_: bool = False
         self.calibration_required_samples_: int = calibration_required_samples
         self.calibration_valid_sample_count_: int = 0
@@ -84,6 +85,8 @@ class IMUFilter:
     def set_absolute_acceleration(self, raw_acceleration: DQ):
         # The acceleration is the opposite of what we're expecting
         self.absolute_acceleration_ = - (raw_acceleration + self.accelerometer_bias_) * 0.01
+        # print("Absolute acceleration {}.".format(self.absolute_acceleration_))
+        # print("DQ(a) {}.".format(raw_acceleration))
 
     def get_absolute_acceleration(self):
         return self.absolute_acceleration_
@@ -131,18 +134,24 @@ class IMUFilter:
         Updates the linear {acceleration, velocity, position} estimates based on the absolute_acceleration
         and the current_rotation.
         """
-        adaptive_gain_for_linear: float = 1.0 - self._get_accelerometer_adaptive_gain()
+        # adaptive_gain_for_linear: float = 1.0 - self._get_accelerometer_adaptive_gain()
+        adaptive_gain_for_linear: float = 1.0
 
         # Get the gravity vector estimation based on the current rotation
         r_now: DQ = self.get_current_rotation()
-        g_now: DQ = r_now * -9.81 * k_ * conj(r_now)
+        g_now: DQ = -9.81 * k_
 
         # The adaptive gain is the complementary of the one used on the rotation. Alas,
         # we trust on it using the inverse relationship that we used for the rotation
-        estimated_acceleration: DQ = adaptive_gain_for_linear * (self.get_absolute_acceleration() - g_now)
-        print("Estimated acceleration {}.".format(estimated_acceleration))
-        self.set_current_linear_velocity(self.get_current_linear_velocity() + estimated_acceleration * T)
-        self.set_current_position(self.get_current_position() + self.get_current_linear_velocity() * T)
+        # print("Absolute acceleration {}, norm = {}.".format(self.get_absolute_acceleration(),
+        #                                                    np.linalg.norm(vec4(self.get_absolute_acceleration()))))
+        a_world = r_now * self.get_absolute_acceleration() * conj(r_now)
+        print("a_world {}.".format(a_world))
+        estimated_acceleration: DQ = adaptive_gain_for_linear * (a_world - g_now)
+        # print("Estimated linear acceleration {}, norm = {}.".format(estimated_acceleration,
+        #                                                            np.linalg.norm(vec4(estimated_acceleration))))
+        # self.set_current_linear_velocity(self.get_current_linear_velocity() + estimated_acceleration * T)
+        self.set_current_position(self.get_current_position() + estimated_acceleration * T)
 
     def get_accelerometer_rotation_estimate(self):
         """
@@ -154,9 +163,13 @@ class IMUFilter:
         acceleration_direction: DQ = self.get_absolute_acceleration() * (1.0 / acceleration_magnitude)
 
         adaptive_gain: float = self._get_accelerometer_adaptive_gain()
+        # print("Magnitude {}.".format(acceleration_magnitude))
+        # print("Adaptive gain {}.".format(adaptive_gain))
 
         # Get estimated rotation from the accelerometer readings (as if it is a reliable estimation of the gravity)
         estimated_accel_angle: float = acos(dot(acceleration_direction, -k_).q[0])
+        if estimated_accel_angle == 0:
+            return self.get_current_rotation()
         estimated_accel_n: DQ = cross(acceleration_direction, -k_) * (1.0 / sin(estimated_accel_angle))
         estimated_accel_r: DQ = _adjust_dq_quadrant(
             cos(estimated_accel_angle / 2.0) + estimated_accel_n * sin(estimated_accel_angle / 2.0))
@@ -214,24 +227,32 @@ if __name__ == "__main__":
             vi.disconnect_all()
             raise Exception("Unable to connect to VREP")
         vi.start_simulation()
+        last_time = time.time_ns()/1e9
         while True:
             try:
+                this_time = time.time_ns()/1e9
                 imu_glove_comm.update()
                 a = imu_glove_comm.get_raw_accelerometer_values()
+                # print("a = {}.".format(a))
                 w = imu_glove_comm.get_raw_gyrometer_values()
                 b = imu_glove_comm.get_button()
                 frame = imu_glove_comm.get_frame_number()
                 if b and None not in a and None not in w and frame > past_frame:
-                    print("Frame {}.".format(frame))
+                    # print("Frame {}.".format(frame))
                     imu_filter.set_absolute_acceleration(DQ(a))
                     imu_filter.set_absolute_angular_velocity(DQ(w))
-                    imu_filter.update_rotation_estimate(0.002)
-                    imu_filter.update_linear_estimates(0.0002)
+                    T = this_time - last_time
+                    imu_filter.update_rotation_estimate(T)
+                    imu_filter.update_linear_estimates(T*(1.0/10.))
                     r = imu_filter.get_current_rotation()
                     t = imu_filter.get_current_position()
                     past_frame = frame
                     vi.set_object_rotation("Cuboid", r)
                     vi.set_object_translation("Cuboid", t)
+                if not b:
+                    imu_filter.set_current_linear_velocity(DQ([0]))
+                    imu_filter.set_current_position(DQ([0]))
+                last_time = this_time
             except KeyboardInterrupt:
                 print("imu_glove_comm::Info::Execution ended by user.")
                 break
