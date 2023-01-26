@@ -268,11 +268,11 @@ if __name__ == "__main__":
                     r = imu_filter.get_current_rotation()
                     # t = imu_filter.get_current_position()
                     past_frame = frame
-                    vi.set_object_rotation("Cuboid", r)
+                    vi.set_object_rotation("Frame", r)
                     x = rotation_angle(conj(r) * i_)-pi
                     y = rotation_angle(conj(r) * j_)-pi
                     z = rotation_angle(conj(r) * k_)-pi
-                    vi.set_object_translation("Cuboid", DQ([x, y, z]))
+                    # vi.set_object_translation("Cuboid", DQ([x, y, z]))
                 if not b:
                     imu_filter.set_current_linear_velocity(DQ([0]))
                     imu_filter.set_current_position(DQ([0]))
