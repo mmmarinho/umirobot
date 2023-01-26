@@ -18,6 +18,7 @@ Valenti, R.G.; Dryanovski, I.; Xiao, J., Sensors 2015, 15, 19302-19330
 """
 import time
 
+import numpy.linalg.linalg
 from dqrobotics import *
 import numpy as np
 from math import cos, acos, sin
@@ -46,7 +47,7 @@ def _adjust_dq_quadrant(dq):
 class IMUFilter:
     def __init__(self,
                  adaptive_gain_bounds: (float, float) = (0.1, 0.2),
-                 accelerometer_weight: float = 0.01,
+                 accelerometer_weight: float = 1.0,
                  calibration_required_samples: int = 20,
                  accelerometer_bias=-DQ([9, 16.0, 2]) * 9.81,  # Obtained from
                  # _imu_glove_comm main script
@@ -146,39 +147,56 @@ class IMUFilter:
         # print("Absolute acceleration {}, norm = {}.".format(self.get_absolute_acceleration(),
         #                                                    np.linalg.norm(vec4(self.get_absolute_acceleration()))))
         a_world = r_now * self.get_absolute_acceleration() * conj(r_now)
-        print("a_world {}.".format(a_world))
+        # print("a_world {}.".format(a_world))
         estimated_acceleration: DQ = adaptive_gain_for_linear * (a_world - g_now)
         # print("Estimated linear acceleration {}, norm = {}.".format(estimated_acceleration,
         #                                                            np.linalg.norm(vec4(estimated_acceleration))))
         # self.set_current_linear_velocity(self.get_current_linear_velocity() + estimated_acceleration * T)
         self.set_current_position(self.get_current_position() + estimated_acceleration * T)
 
-    def get_accelerometer_rotation_estimate(self):
+    def get_accelerometer_rotation_estimate(self,
+                                            T: float):
         """
         Gets the estimated rotation after adjusting for the current gravity estimation.
-        :return: the estimated rotation after adjusting for the current gravity estimation
-        using an adaptive gain as described in [1].
+        [A `novel-ish` algorithm that I haven't seen anywhere but haven't looked around that much either]
+        :return: the estimated rotation after adjusting for the current gravity estimation.
         """
-        acceleration_magnitude: float = np.linalg.norm(vec4(self.get_absolute_acceleration()))
-        acceleration_direction: DQ = self.get_absolute_acceleration() * (1.0 / acceleration_magnitude)
+        a: DQ = self.get_absolute_acceleration()
+        a_norm: float = np.linalg.norm(vec3(a))
 
+        # Defines how much we can trust that a is an estimate of the gravity
         adaptive_gain: float = self._get_accelerometer_adaptive_gain()
-        # print("Magnitude {}.".format(acceleration_magnitude))
-        # print("Adaptive gain {}.".format(adaptive_gain))
+        # print("Adaptive gain = {}".format(adaptive_gain))
 
-        # Get estimated rotation from the accelerometer readings (as if it is a reliable estimation of the gravity)
-        estimated_accel_angle: float = acos(dot(acceleration_direction, -k_).q[0])
-        if estimated_accel_angle == 0:
-            return self.get_current_rotation()
-        estimated_accel_n: DQ = cross(acceleration_direction, -k_) * (1.0 / sin(estimated_accel_angle))
-        estimated_accel_r: DQ = _adjust_dq_quadrant(
-            cos(estimated_accel_angle / 2.0) + estimated_accel_n * sin(estimated_accel_angle / 2.0))
+        r_k: DQ = self.get_current_rotation()
 
-        # Get a middle ground between the two depending on the adaptive_gain
-        # 1.0 implies r = estimated_accel_r
-        # 0.0 implies r = current_rotation
-        r_now: DQ = self.get_current_rotation()
-        ra: DQ = r_now * exp(adaptive_gain * log(conj(r_now) * estimated_accel_r))
+        # Measured gravity vector with norm adjustment
+        g_y: DQ = a * (1.0 / a_norm)  # The 9.81 will cancel itself out
+        # print("gy = {}".format(g_y))
+
+        # Get gravity vector
+        g_k: DQ = conj(r_k) * g_y * r_k  # The 9.81 will cancel itself out
+        print("g_k = {}.".format(g_k))
+
+        # Get error (gravity vectors)
+        e: DQ = g_k - (-k_)
+        # print("e = {}".format(e))
+        print("norm(e) = {}".format(np.linalg.norm(vec3(e))))
+
+        # Get the filter signal
+        Jg = (haminus4(g_y * r_k) @ C4() + hamiplus4(conj(r_k) * g_y))
+        Jg_inv = numpy.linalg.pinv(Jg)
+        r_dot: DQ = 0.001 * DQ(Jg_inv @ vec4(-e))  # Can add a gain here if needed.
+
+        # Use unit quaternion integration
+        #r_k_delta: DQ = exp((T * w_k * adaptive_gain) * 0.5)
+        #print(norm(r_k_delta))
+
+        # ra: DQ = r_k * r_k_delta
+        if T == 0:
+            return r_k
+        ra: DQ = normalize(r_k + r_dot*(1.0/T))
+        # print(norm(ra))
 
         return ra
 
@@ -208,7 +226,7 @@ class IMUFilter:
         estimate and the gyro rotation estimate.
         :return: the fused rotation quaternion depending on the accelerometer weight.
         """
-        ra: DQ = self.get_accelerometer_rotation_estimate()
+        ra: DQ = self.get_accelerometer_rotation_estimate(T)
         rg: DQ = self.get_gyrometer_rotation_estimate(T)
         r_fused: DQ = rg * exp(self.get_accelerometer_weight() * log(conj(rg) * ra))
         self.set_current_rotation(normalize(r_fused))
@@ -227,10 +245,10 @@ if __name__ == "__main__":
             vi.disconnect_all()
             raise Exception("Unable to connect to VREP")
         vi.start_simulation()
-        last_time = time.time_ns()/1e9
+        last_time = time.time_ns() / 1e9
         while True:
             try:
-                this_time = time.time_ns()/1e9
+                this_time = time.time_ns() / 1e9
                 imu_glove_comm.update()
                 a = imu_glove_comm.get_raw_accelerometer_values()
                 # print("a = {}.".format(a))
@@ -243,12 +261,12 @@ if __name__ == "__main__":
                     imu_filter.set_absolute_angular_velocity(DQ(w))
                     T = this_time - last_time
                     imu_filter.update_rotation_estimate(T)
-                    imu_filter.update_linear_estimates(T*(1.0/10.))
+                    imu_filter.update_linear_estimates(T * (1.0 / 10.))
                     r = imu_filter.get_current_rotation()
                     t = imu_filter.get_current_position()
                     past_frame = frame
                     vi.set_object_rotation("Cuboid", r)
-                    vi.set_object_translation("Cuboid", t)
+                    # vi.set_object_translation("Cuboid", t)
                 if not b:
                     imu_filter.set_current_linear_velocity(DQ([0]))
                     imu_filter.set_current_position(DQ([0]))
