@@ -195,24 +195,17 @@ if __name__ == "__main__":
                 this_time = time.time_ns() / 1e9
                 imu_glove_comm.update()
                 a = imu_glove_comm.get_raw_accelerometer_values()
-                # print("a = {}.".format(a))
                 w = imu_glove_comm.get_raw_gyrometer_values()
                 b = imu_glove_comm.get_button()
                 frame = imu_glove_comm.get_frame_number()
                 if b and None not in a and None not in w and frame > past_frame:
-                    # print("Frame {}.".format(frame))
                     imu_filter.set_absolute_acceleration(DQ(a))
                     imu_filter.set_absolute_angular_velocity(DQ(w))
                     T = this_time - last_time
                     imu_filter.update_rotation_estimate(T)
                     r = imu_filter.get_current_rotation()
-                    # t = imu_filter.get_current_position()
                     past_frame = frame
                     vi.set_object_rotation("Frame", r)
-                    x = rotation_angle(conj(r) * i_) - pi
-                    y = rotation_angle(conj(r) * j_) - pi
-                    z = rotation_angle(conj(r) * k_) - pi
-                    # vi.set_object_translation("Cuboid", DQ([x, y, z]))
                 if not b:
                     imu_filter.set_current_linear_velocity(DQ([0]))
                     imu_filter.set_current_position(DQ([0]))
