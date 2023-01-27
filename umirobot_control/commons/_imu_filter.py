@@ -111,7 +111,7 @@ class IMUFilter:
         # Get error (gravity vectors)
         e: DQ = (conj(r_k) * (-k_) * r_k) - g_y
 
-        # Get the filter signal
+        # Get the filter signal -> The two following lines are replaced by the closed form given by get_J_pinv
         # Jg = (hamiplus4(conj(r_k) * -k_) + haminus4(-k_ * r_k) @ C4())
         # Jg_inv = numpy.linalg.pinv(Jg)
         r_dot: DQ = adaptive_gain * self.accelerometer_filter_gain_ * DQ(get_J_pinv(r_k) @ vec4(-e))
@@ -120,7 +120,7 @@ class IMUFilter:
         if T == 0:
             return r_k
 
-        ra: DQ = normalize(r_k * exp(w * (1.0 / T)))
+        ra: DQ = r_k * exp(w * (1.0 / T))
 
         return ra
 
@@ -153,7 +153,8 @@ class IMUFilter:
         ra: DQ = self.get_accelerometer_rotation_estimate(T)
         rg: DQ = self.get_gyrometer_rotation_estimate(T)
         r_fused: DQ = rg * exp(self.get_accelerometer_weight() * log(conj(rg) * ra))
-        self.set_current_rotation(normalize(r_fused))
+        self.set_current_rotation(normalize(r_fused)) # The iterative nature of this algorithm makes this one and
+        # only normalize eventually necessary.
 
 
 if __name__ == "__main__":
