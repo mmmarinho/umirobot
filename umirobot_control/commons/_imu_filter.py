@@ -9,10 +9,11 @@ You should have received a copy of the GNU General Public License along with thi
 see <https://www.gnu.org/licenses/>.
 
 This source file is used to filter and estimate the rotation and position of a given
-IMU that has an accelerometer and a gyrometer. It is based on some of the content of [1]
-below, but with a little bit more solid use of quaternion algebra.
+IMU that has an accelerometer and a gyrometer. The guaternion-based accelerometer filter was NOT presented in [1].
+It might not be original, but I did not base it on any existing filter that I know of. It's inspired on
+quaternion-based kinematic control.
 
-Reference:
+Adaptive gain reference:
 [1] Keeping a Good Attitude: A Quaternion-Based Oritantion Filter for IMUs and MARGs.
 Valenti, R.G.; Dryanovski, I.; Xiao, J., Sensors 2015, 15, 19302-19330
 """
@@ -21,7 +22,7 @@ import time
 import numpy.linalg.linalg
 from dqrobotics import *
 import numpy as np
-from math import cos, sin, pi
+from math import cos, sin
 from _imu_glove_comm import IMUGloveComm
 from dqrobotics.utils.DQ_Math import deg2rad
 from dqrobotics.interfaces.vrep import DQ_VrepInterface
@@ -50,23 +51,6 @@ class IMUFilter:
         self.absolute_acceleration_ = DQ([0.0])
         self.absolute_angular_velocity_ = DQ([0.0])
         self.current_rotation_ = DQ([1.0])
-        self.current_position_ = DQ([0.0])
-        self.current_linear_velocity_ = DQ([0.0])
-
-    def run_calibration_step(self):
-        if self._get_accelerometer_adaptive_gain() < 1.0:
-            return
-
-        r_now = self.get_current_rotation()
-        ra = self.get_accelerometer_rotation_estimate()  # Because adaptive gain is 1.0, fully trust it
-
-        rc: DQ = r_now * exp((self.calibration_valid_sample_count_ / self.calibration_valid_sample_count_)
-                             * log(conj(r_now) * ra))  # Get iterative average
-        self.calibration_valid_sample_count_ = self.calibration_valid_sample_count_ + 1
-
-        self.set_current_position(rc)
-        if self.calibration_valid_sample_count_ >= self.calibration_required_samples_:
-            self.calibrated_ = True
 
     def set_absolute_acceleration(self, raw_acceleration: DQ):
         self.absolute_acceleration_ = - (raw_acceleration + self.accelerometer_bias_) * 0.01
@@ -88,18 +72,6 @@ class IMUFilter:
 
     def get_current_rotation(self):
         return self.current_rotation_
-
-    def get_current_position(self):
-        return self.current_position_
-
-    def set_current_position(self, position):
-        self.current_position_ = position
-
-    def get_current_linear_velocity(self):
-        return self.current_linear_velocity_
-
-    def set_current_linear_velocity(self, velocity):
-        self.current_linear_velocity_ = velocity
 
     def _get_accelerometer_adaptive_gain(self):
         magnitude_error: float = abs(np.linalg.norm(vec4(self.get_absolute_acceleration())) - 9.81) / 9.81
@@ -214,9 +186,6 @@ if __name__ == "__main__":
                     r = imu_filter.get_current_rotation()
                     past_frame = frame
                     vi.set_object_rotation("Frame", r)
-                if not b:
-                    imu_filter.set_current_linear_velocity(DQ([0]))
-                    imu_filter.set_current_position(DQ([0]))
                 last_time = this_time
             except KeyboardInterrupt:
                 print("imu_glove_comm::Info::Execution ended by user.")
