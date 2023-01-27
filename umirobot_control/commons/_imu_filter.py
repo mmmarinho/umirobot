@@ -171,6 +171,7 @@ if __name__ == "__main__":
             raise Exception("Unable to connect to VREP")
         vi.start_simulation()
         last_time = time.time_ns() / 1e9
+
         while True:
             try:
                 this_time = time.time_ns() / 1e9
@@ -188,6 +189,10 @@ if __name__ == "__main__":
                     past_frame = frame
                     vi.set_object_rotation("Frame", r)
                 last_time = this_time
+                if b:
+                    vi.set_object_translation("Button", i_)
+                else:
+                    vi.set_object_translation("Button", j_)
             except KeyboardInterrupt:
                 print("imu_glove_comm::Info::Execution ended by user.")
                 break
