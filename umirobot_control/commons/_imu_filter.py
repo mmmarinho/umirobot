@@ -30,7 +30,8 @@ from dqrobotics.interfaces.vrep import DQ_VrepInterface
 class IMUFilter:
     def __init__(self,
                  adaptive_gain_bounds: (float, float) = (0.1, 0.2),
-                 accelerometer_weight: float = 0.01,
+                 accelerometer_weight: float = 0.1,
+                 accelerometer_filter_gain: float = 0.001,
                  calibration_required_samples: int = 20,
                  accelerometer_bias=-DQ([9, 16.0, 2]) * 9.81,  # Obtained from
                  # _imu_glove_comm main script
@@ -41,6 +42,7 @@ class IMUFilter:
 
         self.adaptive_gain_bounds_ = adaptive_gain_bounds
         self.accelerometer_weight_ = accelerometer_weight
+        self.accelerometer_filter_gain_ = accelerometer_filter_gain
 
         self.accelerometer_bias_ = accelerometer_bias
         self.gyrometer_bias_ = gyrometer_bias
@@ -111,11 +113,18 @@ class IMUFilter:
 
     def get_accelerometer_rotation_estimate(self,
                                             T: float):
-        """
-        Gets the estimated rotation after adjusting for the current gravity estimation.
-        [A `novel-ish` algorithm that I haven't seen anywhere but haven't looked around that much either]
-        :return: the estimated rotation after adjusting for the current gravity estimation.
-        """
+
+        def get_J_pinv(r: DQ):
+            """
+            :param r: The rotation quaternion.
+            :return: the pinv of the Jacobian matrix to control that rotation to match -k with gravity.
+            """
+            return 0.5 * np.array(
+                [[0, r.q[2], -r.q[1], -r.q[0]],
+                 [0, -r.q[3], -r.q[0], r.q[1]],
+                 [0, r.q[0], -r.q[3], r.q[2]],
+                 [0, -r.q[1], -r.q[2], -r.q[3]]])
+
         a: DQ = self.get_absolute_acceleration()
         a_norm: float = np.linalg.norm(vec3(a))
 
@@ -127,20 +136,19 @@ class IMUFilter:
         # Measured gravity vector with norm adjustment
         g_y: DQ = a * (1.0 / a_norm)  # The 9.81 will cancel itself out
 
-        # Get gravity vector
-        g_k: DQ = r_k * g_y * conj(r_k)  # The 9.81 will cancel itself out
-
         # Get error (gravity vectors)
-        e: DQ = g_k - (-k_)
+        e: DQ = (conj(r_k) * (-k_) * r_k) - g_y
 
         # Get the filter signal
-        Jg = (haminus4(g_y * conj(r_k)) + hamiplus4(r_k * g_y) @ C4())
-        Jg_inv = numpy.linalg.pinv(Jg)
-        r_dot: DQ = adaptive_gain * 0.001 * DQ(Jg_inv @ vec4(-e))  # Can add a gain here if needed.
-
+        # Jg = (hamiplus4(conj(r_k) * -k_) + haminus4(-k_ * r_k) @ C4())
+        # Jg_inv = numpy.linalg.pinv(Jg)
+        r_dot: DQ = adaptive_gain * self.accelerometer_filter_gain_ * DQ(get_J_pinv(r_k) @ vec4(-e))
+        w_q: DQ = 2.0 * conj(r_k) * r_dot # Should be pure but sometimes has nontrivial real part
+        w = w_q.Im() # TODO Investigate why w is not a pure quaternion as expected
         if T == 0:
             return r_k
-        ra: DQ = normalize(r_k + r_dot * (1.0 / T))
+
+        ra: DQ = normalize(r_k * exp(w * (1.0 / T)))
 
         return ra
 
@@ -180,7 +188,7 @@ if __name__ == "__main__":
     # Test IMUGloveComm
     vi = None
     with IMUGloveComm() as imu_glove_comm:
-        imu_glove_comm.set_port('COM5')
+        imu_glove_comm.set_port('COM3')
         imu_filter = IMUFilter()
         print("Press CTRL+C to end.")
         past_frame = 0
