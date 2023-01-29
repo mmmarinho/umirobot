@@ -8,14 +8,19 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Gen
 You should have received a copy of the GNU General Public License along with this program. If not,
 see <https://www.gnu.org/licenses/>.
 
-This source file is used to filter and estimate the rotation and position of a given
-IMU that has an accelerometer and a gyrometer. The guaternion-based accelerometer filter was NOT presented in [1].
-It might not be original, but I did not base it on any existing filter that I know of. It's inspired on
-quaternion-based kinematic control.
+This source file is used to filter and estimate the rotation of a given IMU (not a MARG).
+
+The implementation herein can be considered an adaptation of [1] using proper unit-quaternion algebra.
+Our equations differ a lot but the concept is similar (mine are simpler <3).
+I also use the adaptive gain shown in [2] (an probably earlier works).
 
 Adaptive gain reference:
-[1] Keeping a Good Attitude: A Quaternion-Based Oritantion Filter for IMUs and MARGs.
+[1] S. O. H. Madgwick, A. J. L. Harrison and R. Vaidyanathan, “Estimation of IMU and MARG orientation using a gradient
+descent algorithm,” 2011 IEEE International Conference on Rehabilitation Robotics, Zurich, Switzerland,
+2011, pp. 1-7, doi: 10.1109/ICORR.2011.5975346.
+[2] Keeping a Good Attitude: A Quaternion-Based Oritantion Filter for IMUs and MARGs.
 Valenti, R.G.; Dryanovski, I.; Xiao, J., Sensors 2015, 15, 19302-19330
+
 """
 import time
 
@@ -86,12 +91,12 @@ class IMUFilter:
     def get_accelerometer_rotation_estimate(self,
                                             T: float):
 
-        def get_J_pinv(r: DQ):
+        def get_JT(r: DQ):
             """
             :param r: The rotation quaternion.
-            :return: the pinv of the Jacobian matrix to control that rotation to match -k with gravity.
+            :return: the transpose of the Jacobian matrix to control r to match its -k_ with gravity.
             """
-            return 0.5 * np.array(
+            return 2.0 * np.array(
                 [[0, r.q[2], -r.q[1], -r.q[0]],
                  [0, -r.q[3], -r.q[0], r.q[1]],
                  [0, r.q[0], -r.q[3], r.q[2]],
@@ -111,12 +116,11 @@ class IMUFilter:
         # Get error (gravity vectors)
         e: DQ = (conj(r_k) * (-k_) * r_k) - g_y
 
-        # Get the filter signal -> The two following lines are replaced by the closed form given by get_J_pinv
-        # Jg = (hamiplus4(conj(r_k) * -k_) + haminus4(-k_ * r_k) @ C4())
-        # Jg_inv = numpy.linalg.pinv(Jg)
-        r_dot: DQ = adaptive_gain * self.accelerometer_filter_gain_ * DQ(get_J_pinv(r_k) @ vec4(-e))
-        w_q: DQ = 2.0 * conj(r_k) * r_dot # Should be pure but sometimes has nontrivial real part
-        w = w_q.Im() # TODO Investigate why w is not a pure quaternion as expected
+        # Get the filter signal -> The following line is replaced by the closed form given by get_JT
+        # J = (hamiplus4(conj(r_k) * -k_) + haminus4(-k_ * r_k) @ C4())
+        r_dot: DQ = adaptive_gain * self.accelerometer_filter_gain_ * DQ(get_JT(r_k) @ vec4(-e))
+        w_q: DQ = 2.0 * conj(r_k) * r_dot  # Should be pure but sometimes has nontrivial real part
+        w = w_q.Im()  # Remove the real part
         if T == 0:
             return r_k
 
@@ -124,13 +128,13 @@ class IMUFilter:
 
         return ra
 
-    def get_gyrometer_rotation_estimate(self,
+    def get_gyroscope_rotation_estimate(self,
                                         T: float):
         """
-        Gets the estimated rotation after integrating with the gyrometer readings
+        Gets the estimated rotation after integrating with the gyroscope readings
         during the sampling time T.
         :param T: the sampling time.
-        :return: the estimated rotation after integrating with the gyrometer readings.
+        :return: the estimated rotation after integrating with the gyroscope readings.
         """
         estimated_gyro_angle: float = np.linalg.norm(vec4(self.get_absolute_angular_velocity()))
         estimated_gyro_vector: DQ = self.get_absolute_angular_velocity() * (1.0 / estimated_gyro_angle)
@@ -151,9 +155,9 @@ class IMUFilter:
         :return: the fused rotation quaternion depending on the accelerometer weight.
         """
         ra: DQ = self.get_accelerometer_rotation_estimate(T)
-        rg: DQ = self.get_gyrometer_rotation_estimate(T)
+        rg: DQ = self.get_gyroscope_rotation_estimate(T)
         r_fused: DQ = rg * exp(self.get_accelerometer_weight() * log(conj(rg) * ra))
-        self.set_current_rotation(normalize(r_fused)) # The iterative nature of this algorithm makes this one and
+        self.set_current_rotation(normalize(r_fused))  # The iterative nature of this algorithm makes this one and
         # only normalize eventually necessary.
 
 

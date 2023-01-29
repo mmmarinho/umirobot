@@ -23,8 +23,8 @@ configuration = {
     "damping": 0.01,
     "alpha": 0.999,  # Soft priority between translation and rotation [0,1] ~1 Translation, ~0 Rotation
     "use_real_master": False,
-    "use_real_umirobot": False,
-    "umirobot_port": "COM3"
+    "use_real_umirobot": True,
+    "umirobot_port": "COM4"
 }
 
 
