@@ -28,7 +28,7 @@ import numpy.linalg.linalg
 from dqrobotics import *
 import numpy as np
 from math import cos, sin
-from _imu_glove_comm import IMUGloveComm
+from imu._imu_glove_comm import IMUGloveComm
 from dqrobotics.utils.DQ_Math import deg2rad
 from dqrobotics.interfaces.vrep import DQ_VrepInterface
 
