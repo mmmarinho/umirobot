@@ -9,7 +9,7 @@ Extra Content for the [UMIRobot](https://mmmarinho.github.io/UMIRobot/).
 | umirobot_control.commons                     | Module with shared content                                                    | Murilo M. Marinho |
 | umirobot_control.configuration-space-control | Moving your UMIRobot in configuration space using a Python script             | Murilo M. Marinho |
 | umirobot_control.task-space-control          | Moving your UMIRobot in task space using an constrained kinematic controller. | Murilo M. Marinho |
-
+| models                                       | CoppeliaSim model (`.ttm`) and CoppeliaSim-exported URDF model                | Murilo M. Marinho |
 
 # Setup
 
